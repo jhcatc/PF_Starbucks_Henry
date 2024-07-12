@@ -181,7 +181,7 @@ def predict_cluster(new_text, new_stars, kmeans, preprocessor):
 # Interfaz de Streamlit
 def main():
     new_text = st.text_input("Text: enter the values for review Text")
-    new_stars = st.text_input("Stars: decimal number from 1 to 5")
+    new_stars = st.text_input("Stars: decimal number from 1.0 to 5.0")
     
     # Datos de entrenamiento para el vectorizador TF-IDF estaticos
     X_train = [
