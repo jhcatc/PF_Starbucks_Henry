@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/google-appengine/python'
+    entrypoint: 'python'
+    args: ['-m', 'pip', 'install', '-r', 'requirements.txt']
+
+  - name: 'gcr.io/google-appengine/python'
+    entrypoint: 'bash'
+    args: ['-c', 'python -m streamlit run app.py --server.port=8080 --server.address=0.0.0.0']
+
+
+
+

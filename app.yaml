@@ -1,2 +1,10 @@
 runtime: custom
 env: flex
+
+# Especifica el entrypoint para Streamlit
+entrypoint: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+
+resources:
+  cpu: 1
+  memory_gb: 1
+  disk_size_gb: 10

@@ -7,8 +7,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-/venv
-/Scripts
+/venv/
+/Scripts/
 # C extensions
 *.so
 

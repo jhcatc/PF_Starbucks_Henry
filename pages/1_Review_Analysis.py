@@ -17,31 +17,26 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import streamlit as st
 import nltk
+import ast
+from groq import Groq 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from sklearn.exceptions import NotFittedError
 
-# Path de los modelos preentrenados
-MANIPULATED_PATH = 'models/manipulated_reviews.pkl'
-SENTIMENT_PATH = 'models/sentiment_analysis.pkl'
-VECTORIZER_PATH = 'models/rating_vectorizer.pkl'
-CLUSTER_PATH = 'models/cluster_analysis.pkl'
-PREPROCESSOR_PATH = 'models/preprocessor.pkl'
-TFIDF_PATH = 'models/tfidf_vectorizer.pkl'
-
-# Cargar los modelos guardados
-loaded_model_MANIPULATED = joblib.load(MANIPULATED_PATH)
-loaded_model_SENTIMENT = joblib.load(SENTIMENT_PATH)
-pipeline_VECTORIZER = joblib.load(VECTORIZER_PATH)
-loaded_TFIDF_MANIPULATED = joblib.load(TFIDF_PATH)
-
+# Configurar la página
+st.set_page_config(
+    page_title="Machine Learning Project",
+    page_icon=":rocket:",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # Título
 html_temp = """
 <h2 style="color:#006847;text-align:center;">Machine Learning Project for Business Performance Optimization</h2>
 </div>
 """
-st.markdown(html_temp,unsafe_allow_html=True)
+st.markdown(html_temp, unsafe_allow_html=True)
 
 # CSS para estilizar el botón
 button_style = """
@@ -65,11 +60,33 @@ button_style = """
 # Renderiza el CSS
 st.markdown(button_style, unsafe_allow_html=True)
 
+# Path de los modelos preentrenados
+MANIPULATED_PATH = 'models/manipulated_reviews.pkl'
+SENTIMENT_PATH = 'models/sentiment_analysis.pkl'
+VECTORIZER_PATH = 'models/rating_vectorizer.pkl'
+CLUSTER_PATH = 'models/cluster_analysis.pkl'
+PREPROCESSOR_PATH = 'models/preprocessor.pkl'
+TFIDF_PATH = 'models/tfidf_vectorizer.pkl'
+
+# Cargar los modelos guardados
+loaded_model_MANIPULATED = joblib.load(MANIPULATED_PATH)
+loaded_model_SENTIMENT = joblib.load(SENTIMENT_PATH)
+pipeline_VECTORIZER = joblib.load(VECTORIZER_PATH)
+loaded_TFIDF_MANIPULATED = joblib.load(TFIDF_PATH)
+api_key = "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"
+
 # TOKENIZADO ______________________________________________________________________________________
 
-# Descargar recursos de nltk
-nltk.download('punkt')
-nltk.download('stopwords')
+# Verificar si los paquetes 'punkt' y 'stopwords' ya están descargados
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
 
 # Definir la función para normalizar, tokenizar y capitalizar el texto
 def process_text(text):
@@ -136,117 +153,125 @@ def predict_rating_VECTORIZER(text, stars):
 
 # CLUSTER_PATH _____________________________________________________________________________________
 
-# Crear un DataFrame estático con datos de ejemplo
-data = {
-    'text': [
-            "Ordered Caramel frappe at Drive thru, BIG MISTAKE! Took 30 min and there were only 2 cars in front of me.",
-            "Drum-roll please! Review #100 coming right up! \n\nI chose to review Starbucks as my 100th review because it is a guilty pleasure. Something that I only allow myself once a week. But something that I crave everyday! \n\nThis particular Starbucks is great. The baristas are always friendly and welcoming. The drinks are made correctly and quickly. I usually go with a Salted Caramel Hot Chocolate or Mocha. I also occasionally order the White Mocha. If you can't tell, I enjoy coffee that doesn't taste like coffee! In the summer their iced teas are the perfect thirst quencher! Their breakfast pastry items are always delicious. Try the Cranberry-Orange Scone and you will not be disappointed! Their breakfast sandwiches are unique and pretty tasty as well.\n\nI always choose to go in and place my order over sitting in the drive thru. The line for their drive thru is always ridiculously long. It's usually quicker to go in.",
-            "We stopped here for my Chai and Hubby's coffee and caffeine mania. The line went quite fast, they're quick with the service especially not a lot of people at the time. My Chai came out good, awesome! One thing I forgot to do is to purchase more coffee for the house. They have lots for sale. But not too worry because we still have plenty of Starbucks coffee at home. What would life be without Starbucks?.",
-            "There's been three times that I've ordered a green tea lemonade and got a peach tea lemonade and had to turn all the way back and go inside and have theme remake it",
-            "I went in when they had 4 people working, waited for 15 minutes for my tea latte which came out as basically water. Returned it twice but gave up when the barista offered some other iced tea latte they already had instead. It was still the same - water. The baristas should REALLY REALLY learn how to make their stuff... seriously Starbucks??!!! So disappointed!!!!! :'(.",
-            " Most of the time I go through the drive thru here.  While sometimes the line is a bit long I have to say these guys move in record time.  The line moves fast and my coffee is waiting for me when I get to the window.  How much more can you ask for? \n\nInside there is a decent amount of seating and there is quite a bit of outdoor seating too.  Overall this is a great Starbuck",
-            """i dont know what has happened to the in store service in this place!  We have been down here for a few weeks now and have been here 6 times.Only once was the order completed without a screw up!\n\nToday 2 tall decaf coffees took close to 20 minutes.By then our bagels were cold.First i was told the decaf was "brewing' and then i was told there was something 'wrong" with the brewer? After 15 minutes i was offered a decaf americano.\nBefore we left i politely told a fellow behind the counter the service was abominable and he said 'well we can only store 2 vente size decafs at a time? HUH? I asked if the management knew about this and he just shrugged.\nClearly this staff has never been trained to make it right for the customer.No apology.No coupon.Just a convoluted story.\n \nAmazing how you can have numerous people running around a store but you cant get the simplest order straight My next visit to a Starbucks will certainly not be this one""",
-            "Nothing makes my busy day easy like my iced coffee at Starbucks and this location botched it up for me: see my photo yup those are coffee grinds at the bottom a whole bunch of coffee grinds:( yuck yuck!"
-    ],
-    'stars': [2.0, 4.0, 4.0, 2.0, 1.0, 4.0, 1.0, 1.0]
-}
-
-df_train = pd.DataFrame(data)
-
-@st.cache_resource
-def load_model_and_preprocessor():
-    kmeans = load(CLUSTER_PATH)  # Cargar el modelo KMeans
-    preprocessor = load(PREPROCESSOR_PATH)  # Cargar el vectorizador
-    return kmeans, preprocessor
-
-# Función para predecir clusters
-def predict_cluster(new_text, new_stars, kmeans, preprocessor):
-    new_data = {'stars': [float(new_stars)], 'text': [new_text]}
-    df_new_data = pd.DataFrame(new_data)
-
-    # Preprocesar los nuevos datos
-    X_new_scaled = preprocessor.transform(df_new_data['text'])
-
-    # Predecir clusters
-    predicted_clusters_new = kmeans.predict(X_new_scaled)
-
-    # Añadir los clusters predichos al DataFrame
-    df_new_data['predicted_cluster'] = predicted_clusters_new
-
-    return df_new_data
-
-
-# LECTURA DE DATOS __________________________________________________________________________________
-
-# Interfaz de Streamlit
-def main():
-    new_text = st.text_input("Text: enter the values for review Text")
-    new_stars = st.text_input("Stars: decimal number from 1.0 to 5.0")
+def cluster_and_tag(review):
+    client = Groq(api_key=api_key)
     
-    # Datos de entrenamiento para el vectorizador TF-IDF estaticos
-    X_train = [
-                "Ordered Caramel frappe at Drive thru, BIG MISTAKE! Took 30 min and there were only 2 cars in front of me.",
-                "Drum-roll please! Review #100 coming right up! \n\nI chose to review Starbucks as my 100th review because it is a guilty pleasure. Something that I only allow myself once a week. But something that I crave everyday! \n\nThis particular Starbucks is great. The baristas are always friendly and welcoming. The drinks are made correctly and quickly. I usually go with a Salted Caramel Hot Chocolate or Mocha. I also occasionally order the White Mocha. If you can't tell, I enjoy coffee that doesn't taste like coffee! In the summer their iced teas are the perfect thirst quencher! Their breakfast pastry items are always delicious. Try the Cranberry-Orange Scone and you will not be disappointed! Their breakfast sandwiches are unique and pretty tasty as well.\n\nI always choose to go in and place my order over sitting in the drive thru. The line for their drive thru is always ridiculously long. It's usually quicker to go in.",
-                "We stopped here for my Chai and Hubby's coffee and caffeine mania. The line went quite fast, they're quick with the service especially not a lot of people at the time. My Chai came out good, awesome! One thing I forgot to do is to purchase more coffee for the house. They have lots for sale. But not too worry because we still have plenty of Starbucks coffee at home. What would life be without Starbucks?.",
-                "There's been three times that I've ordered a green tea lemonade and got a peach tea lemonade and had to turn all the way back and go inside and have theme remake it",
-                "I went in when they had 4 people working, waited for 15 minutes for my tea latte which came out as basically water. Returned it twice but gave up when the barista offered some other iced tea latte they already had instead. It was still the same - water. The baristas should REALLY REALLY learn how to make their stuff... seriously Starbucks??!!! So disappointed!!!!! :'(.",
-                " Most of the time I go through the drive thru here.  While sometimes the line is a bit long I have to say these guys move in record time.  The line moves fast and my coffee is waiting for me when I get to the window.  How much more can you ask for? \n\nInside there is a decent amount of seating and there is quite a bit of outdoor seating too.  Overall this is a great Starbuck",
-                """i dont know what has happened to the in store service in this place!  We have been down here for a few weeks now and have been here 6 times.Only once was the order completed without a screw up!\n\nToday 2 tall decaf coffees took close to 20 minutes.By then our bagels were cold.First i was told the decaf was "brewing' and then i was told there was something 'wrong" with the brewer? After 15 minutes i was offered a decaf americano.\nBefore we left i politely told a fellow behind the counter the service was abominable and he said 'well we can only store 2 vente size decafs at a time? HUH? I asked if the management knew about this and he just shrugged.\nClearly this staff has never been trained to make it right for the customer.No apology.No coupon.Just a convoluted story.\n \nAmazing how you can have numerous people running around a store but you cant get the simplest order straight My next visit to a Starbucks will certainly not be this one""",
-                "Nothing makes my busy day easy like my iced coffee at Starbucks and this location botched it up for me: see my photo yup those are coffee grinds at the bottom a whole bunch of coffee grinds:( yuck yuck!"
-            ]
-    y_train = [0, 1, 2, 3, 4, 5, 6, 7]  # Aquí deberías tener las etiquetas correspondientes
+    completion = client.chat.completions.create(
+        model="llama3-70b-8192",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a business specialist. You have to classify Starbucks client reviews into one of five clusters: \n1) Service.\n2) Place.\n3) Coffee.\n4) Food.\n5) Time\n\nAdditionally, add a positive, neutral or negative tag to the review.\n\nReturn your answer in the specified format, without any other messages."
+            },
+            {
+                "role": "user",
+                "content": "Review: The location is a franchise of sorts operated by Sodexo, the food service intermediary working on contract for the university. As a result, the service is not and will never be up to Starbucks's standards. This is less about the quality of the food & beverages, and more to do with the quality and friendliness of the servers. I personally have only had to deal with slow service, but that could happen at any time during a rush. The worst stories come from others; I have been around while the building was hosting an added-security event, which required the presence of LEOs; the baristas refused to provide him with a glass of water without charging him. At other foodservice locations in the same building and operated by the same company, not even students are charged for water glasses. That one event does a good job summarizing the apathy and disregard the employees have for their customers. Another critical issue is that this location doesn't accept Starbucks's own rewards program, which is extremely annoying after having signed up for the program just for the convenience of the location being in the same building that I work for. I've personally made a resolution to never purchase another item at this location again."
+            },
+            {
+                "role": "assistant",
+                "content": "{'cluster': 'Service', 'tag': 'negative'}"
+            },
+            {
+                "role": "user",
+                "content": "Go to the one in Sterne. This place is a mess. Wrong size coffee, stale croissant, long wait."
+            },
+            {
+                "role": "assistant",
+                "content": "[{'cluster': 'place', 'tag': 'negative'},{'cluster': 'food', 'tag': 'negative'}]"
+            },
+            {
+                "role": "user",
+                "content": f"Review: {review}"
+            }
+        ],
+        temperature=1,
+        max_tokens=1024,
+        top_p=1,
+        stream=True,
+        stop=None,
+    )
     
-    if st.button("Predict"):
-        if new_text.strip() == '' or not new_stars.replace('.', '', 1).isdigit() or not (1 <= float(new_stars) <= 5):
-            st.warning("Please enter a review text.")
-            
+    answer = []
+    for chunk in completion:
+        sent = (chunk.choices[0].delta.content or "")
+        answer.append(sent)
+
+    response = "".join(answer).strip()
+    
+    # Intenta evaluar la respuesta, si falla, muestra el error
+    try:
+        result = ast.literal_eval(response)
+        if isinstance(result, dict):
+            result = [result]
+        return pd.DataFrame(result)
+    except Exception as e:
+        print(f"Error al evaluar la respuesta: {e}")
+        print("Respuesta recibida:", response)
+        return pd.DataFrame()
+
+# INTERFACE DE STREAMLIT _________________________________________________________________________
+
+# Configuración de la barra lateral
+with st.sidebar:
+    st.title("Machine Learning Models")
+    st.write("Select a model to use")
+
+    # Selector de modelos
+    model_option = st.selectbox(
+        "Choose a model:",
+        ["Sentiment Analysis", "Fake Review Detection", "Business Rating Prediction", "Cluster and Tag"]
+    )
+
+# Input del usuario
+st.subheader("")
+review_text = st.text_area("", "")
+
+# Variables de estado de sesión
+if "prediction_result" not in st.session_state:
+    st.session_state.prediction_result = ""
+
+if "predict_sentiment" not in st.session_state:
+    st.session_state.predict_sentiment = ""
+
+if "predicted_rating" not in st.session_state:
+    st.session_state.predicted_rating = ""
+
+if "cluster_and_tag_result" not in st.session_state:
+    st.session_state.cluster_and_tag_result = ""
+
+if model_option == "Sentiment Analysis":    
+    if st.button("Analyze Sentiment", key="sentiment"):
+        if review_text:
+            st.session_state.predict_sentiment = predict_sentiment_SENTIMENT(review_text)
+            st.write(f"Sentiment Analysis Result: {st.session_state.predict_sentiment}")
         else:
-            # TOKENIZED ________________________
-            # Ejecutar función de TOKENIZED si es necesario
-            processed_text = process_text(new_text)
-            st.write(f"Processed Text: {processed_text}")
-            
-            # MANIPULATED ______________________
-            # Ejecutar función de MANIPULATED si es necesario
-            result = predict_review(new_text, new_stars)
-            st.write(f'The new review is {result}')
-            
-            # SENTIMENT ________________________
-            # ejecutar la predicción    
-            predicted_emoji = predict_sentiment_SENTIMENT(new_text)
-            st.success(f"Predicted sentiment emoji: {predicted_emoji}")
-            
-            # VECTORIZER _______________________
-            # ejecutar la predicción
-            predict_rating_VECTORIZER(new_text, new_stars)
+            st.write("Please enter a review text.")
 
-            # CLUSTER __________________________
-            kmeans, preprocessor = load_model_and_preprocessor()
-            if new_text and new_stars:
-                # Realizar la predicción del cluster
-                df_result = predict_cluster(new_text, new_stars, kmeans, preprocessor)
+elif model_option == "Fake Review Detection":
+    stars = st.slider("Enter the star rating (1-5)", min_value=1.0, max_value=5.0, value=1.0, step=0.1)
+    if st.button("Detect Fake Review", key="fake_review"):
+        if review_text:
+            st.session_state.prediction_result = predict_review(review_text, stars)
+            st.write(f"Fake Review Detection Result: {st.session_state.prediction_result}")
+        else:
+            st.write("Please enter a review text.")
 
-                # Mostrar los resultados
-                st.write("Prediction Results Based on Cluster Analysis:")
-                st.write(df_result)
+elif model_option == "Business Rating Prediction":
+    stars = st.slider("Enter the star rating (1-5)", min_value=1.0, max_value=5.0, value=1.0, step=0.1)
+    if st.button("Predict Rating", key="rating_prediction"):
+        if review_text:
+            predict_rating_VECTORIZER(review_text, stars)
+        else:
+            st.write("Please enter a review text.")
 
-                # Graficar los datos nuevos
-                plt.figure(figsize=(14, 1.5))
-                plt.scatter(df_result['stars'], [0] * len(df_result), c=df_result['predicted_cluster'], cmap='viridis')
-                plt.xlabel('Stars', fontsize=10)  # Cambia el tamaño de la fuente aquí
-                plt.title('Review Clusters for New Data', fontsize=12)  # Cambia el tamaño de la fuente aquí
+elif model_option == "Cluster and Tag":
+    if st.button("Cluster and Tag Review", key="cluster_and_tag"):
+        if review_text:
+            result_df = cluster_and_tag(review_text)
+            st.session_state.cluster_and_tag_result = result_df
 
-                # Crear la colorbar
-                cbar = plt.colorbar(label='Cluster')
-                cbar.ax.tick_params(labelsize=8)  # Cambia el tamaño de la fuente para los ticks de la colorbar
-
-                # Cambiar el tamaño de la fuente de la etiqueta de la colorbar
-                cbar.set_label('Cluster', fontsize=8)  # Cambia el tamaño de la fuente aquí
-
-                plt.xticks(fontsize=8)  # Cambia el tamaño de la fuente para las etiquetas del eje x
-                plt.yticks(fontsize=8)  # Cambia el tamaño de la fuente para las etiquetas del eje y
-                st.pyplot(plt)
-
-
-if __name__ == "__main__":
-    main()
+            # Mostrar el DataFrame en Streamlit
+            st.write("Cluster and Tag Result:")
+            st.dataframe(result_df)
+        else:
+            st.write("Please enter a review text.")

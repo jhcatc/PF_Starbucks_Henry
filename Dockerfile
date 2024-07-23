@@ -1,21 +1,24 @@
-# Usar la imagen slim de Python 3.10.8
 FROM python:3.10.8-slim
 
-# recordar exponer el puerto en el que se expondrá tu aplicación.
-EXPOSE 8080
-
-# instalar la última versión de pip
-RUN pip install -U pip
-
-# Copia los archivos necesarios al contenedor
-COPY requirements.txt requirements.txt
-
-# Instalar las dependencias necesarias
-RUN pip install -r requirements.txt
-
-# copiar en un directorio propio (para que no esté en el directorio de nivel superior)
-COPY . /app
+# Establecer un directorio de trabajo
 WORKDIR /app
 
-# ejecutar!
-ENTRYPOINT ["streamlit", "run", "Main.py", "--server.port=8080", "--server.address=0.0.0.0"]
+# Copiar los requisitos
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar la aplicación
+COPY app.py ./
+
+# Copiar el directorio de imágenes estáticas y otros directorios necesarios
+COPY statics/ ./statics/
+COPY models/ ./models/
+COPY pages/ ./pages/
+
+# Exponer el puerto 8080
+EXPOSE 8080
+
+# Comando por defecto
+CMD ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0"]
+
+
