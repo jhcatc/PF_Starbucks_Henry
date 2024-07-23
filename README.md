@@ -57,30 +57,44 @@ Aplicación Desplegada en GCP - Usando un contenedor de Docker y Streamlit
 
 #### Detección de Reseñas Manipuladas
 Beneficio: Identifica si una reseña es auténtica o manipulada, ayudando a mantener la credibilidad y confianza en las opiniones de los clientes.
-Uso:
-Entrada: Texto de la reseña y la calificación.
-Proceso: Análisis del texto con técnicas avanzadas.
-Salida: Clasificación de la reseña como 'Falsa' o 'Genuina'.
+Tecnologías y Bibliotecas:
+Bibliotecas: numpy, modelo de aprendizaje automático (loaded_model_MANIPULATED), vectorizador TF-IDF (loaded_TFIDF_MANIPULATED).
+Cómo Funciona:
+Entrada: texto (reseña), estrellas (calificación).
+Proceso: Transforma el texto con TF-IDF, lo combina con la calificación y predice con el modelo.
+Salida: 'Falso' si es manipulada, 'Genuina' si es genuina.
 
 #### Análisis de Sentimiento
 Beneficio: Entiende rápidamente la percepción de los clientes mediante la evaluación del sentimiento de sus comentarios.
-Uso:
-Entrada: Texto de la reseña.
-Proceso: Análisis del sentimiento.
-Salida: Representación visual (emoji) del sentimiento (negativo, neutral, positivo).
+Entrada: Texto procesado.
+Salida: Emoji que representa el sentimiento (negativo, neutral o positivo).
+Tecnologías y Bibliotecas:
+Bibliotecas: Modelo precargado (loaded_model_SENTIMENT), streamlit.
 
 #### Predicción de Calificación del Negocio
 Beneficio: Anticipa la calificación futura de un negocio a partir de reseñas recientes, facilitando la toma de decisiones estratégicas.
-Uso:
-Entrada: Texto de la reseña y la calificación actual.
-Proceso: Análisis y predicción.
-Salida: Calificación predicha y recomendaciones.
+Entrada:
+texto: El texto de la reseña.
+estrellas: La calificación actual del negocio.
+Salida:
+Streamlit para mostrar los resultados.
+CountVectorizer para convertir el texto en vectores de conteo.
+RandomForestRegressor para la predicción de la calificación.
+Pipeline para encadenar el vectorizador y el modelo.
+train_test_split para dividir los datos en conjuntos de entrenamiento y prueba.
+Proceso:
+Entrena un modelo utilizando el texto de las reseñas y las calificaciones.
+Utiliza una pipeline para predecir la calificación y mostrar recomendaciones basadas en el resultado.
 
 #### Clasificación y Etiquetado de Reseñas
 Beneficio: Organiza las reseñas en categorías relevantes, proporcionando una visión clara y estructurada de las opiniones de los clientes.
-Uso:
-Entrada: Texto de la reseña.
-Proceso: Clasificación y etiquetado automático.
-Salida: Informe con las frecuencias de las categorías y gráficos visuales.
-Resumen
-Estas funcionalidades permiten obtener insights valiosos sobre la autenticidad, el sentimiento, la calificación y la categorización de las reseñas, mejorando la toma de decisiones y la estrategia de negocio basada en las opiniones de los clientes.
+Entradas: Texto de una reseña de un cliente.
+Tecnologías y Bibliotecas Utilizadas:
+Tecnología: API de Groq con el modelo LLaMA para la clasificación y el etiquetado.
+Bibliotecas: Groq (API), pandas (manipulación de datos), matplotlib.pyplot (visualización), streamlit (interfaz web).
+Proceso:
+cluster_and_tag(review): Envía la reseña a la API para la clasificación en categorías y el etiquetado de sentimientos.
+cap(el): Capitaliza el texto para uniformidad.
+analyze_review(new_text, figsize=(10, 4)): Analiza la reseña, agrega y cuenta los resultados, y crea un gráfico de barras apiladas.
+Salidas:
+DataFrame con frecuencias de categorías y etiquetas.
